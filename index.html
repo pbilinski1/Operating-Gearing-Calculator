@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee Shop Operating Gearing Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #F5F0E8;
+    --cream-dark: #EDE6D4;
+    --espresso: #1C120A;
+    --roast: #3D2314;
+    --caramel: #C07C3A;
+    --caramel-light: #E8A85A;
+    --foam: #FAF7F2;
+    --steam: #7A6855;
+    --profit-green: #2D7D5A;
+    --loss-red: #B84040;
+    --revenue-blue: #2A5F9E;
+    --cost-rust: #A04030;
+    --card-bg: rgba(255,255,255,0.65);
+    --border: rgba(60,35,20,0.12);
+    --shadow: 0 2px 20px rgba(60,35,20,0.08);
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background-color: var(--cream);
+    color: var(--espresso);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(192,124,58,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(61,35,20,0.07) 0%, transparent 60%);
+  }
+
+  /* ── Layout ── */
+  .app-shell {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-icon {
+    width: 48px; height: 48px;
+    background: var(--espresso);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .header-icon svg { width: 26px; height: 26px; }
+  .header-text h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    color: var(--espresso);
+  }
+  .header-text p {
+    font-size: 0.82rem;
+    color: var(--steam);
+    margin-top: 3px;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Two-column layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── Panel (left controls) ── */
+  .panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    backdrop-filter: blur(8px);
+  }
+
+  .panel-section { margin-bottom: 1.25rem; }
+  .panel-section:last-child { margin-bottom: 0; }
+
+  .section-head {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--caramel);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Presets */
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .preset-btn {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--roast);
+    background: var(--cream-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .preset-btn:hover { background: var(--cream); border-color: var(--caramel); }
+  .preset-btn.active {
+    background: var(--espresso);
+    color: var(--cream);
+    border-color: var(--espresso);
+  }
+  .preset-btn small { display: block; font-size: 0.68rem; opacity: 0.6; margin-top: 1px; }
+
+  /* Sliders */
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 0.85rem;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .slider-label {
+    font-size: 0.78rem;
+    color: var(--steam);
+    font-weight: 500;
+  }
+  .slider-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--espresso);
+  }
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--cream-dark);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--espresso);
+    border: 2px solid var(--cream);
+    box-shadow: 0 0 0 1px var(--espresso);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--espresso);
+    border: 2px solid var(--cream);
+    cursor: pointer;
+  }
+
+  /* Gearing bar */
+  .gearing-bar-wrap {
+    margin-top: 0.5rem;
+    background: var(--cream-dark);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .gearing-bar-fixed {
+    height: 100%;
+    background: var(--espresso);
+    border-radius: 4px;
+    transition: width 0.25s ease;
+  }
+  .gearing-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--steam);
+    margin-top: 3px;
+  }
+
+  /* ── Right column ── */
+  .right-col { display: flex; flex-direction: column; gap: 1rem; }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--caramel);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .kpi-card.profit-pos::before { background: var(--profit-green); opacity: 1; }
+  .kpi-card.profit-neg::before { background: var(--loss-red); opacity: 1; }
+  .kpi-label { font-size: 0.68rem; color: var(--steam); font-weight: 500; letter-spacing: 0.03em; margin-bottom: 5px; }
+  .kpi-value { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 500; line-height: 1; color: var(--espresso); }
+  .kpi-value.pos { color: var(--profit-green); }
+  .kpi-value.neg { color: var(--loss-red); }
+  .kpi-sub { font-size: 0.68rem; color: var(--steam); margin-top: 4px; }
+
+  /* Chart card */
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem 1.25rem 1rem;
+    backdrop-filter: blur(8px);
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+  .chart-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    color: var(--espresso);
+  }
+  .chart-subtitle { font-size: 0.72rem; color: var(--steam); margin-top: 2px; }
+  .legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    color: var(--steam);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* Insight box */
+  .insight-card {
+    background: linear-gradient(135deg, var(--espresso) 0%, var(--roast) 100%);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    color: var(--cream);
+  }
+  .insight-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--caramel-light);
+    margin-bottom: 0.4rem;
+  }
+  .insight-text {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: rgba(245,240,232,0.85);
+  }
+  .insight-text strong { color: var(--cream); font-weight: 600; }
+
+  /* Break-even callout */
+  .bep-callout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(192,124,58,0.15);
+    border: 1px solid rgba(192,124,58,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--caramel);
+    margin-top: 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* ── Margin of Safety box ── */
+  .mos-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+    backdrop-filter: blur(8px);
+  }
+  .mos-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+  .mos-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.95rem;
+    color: var(--espresso);
+  }
+  .mos-subtitle {
+    font-size: 0.7rem;
+    color: var(--steam);
+  }
+  .mos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 0.85rem;
+  }
+  .mos-metric {
+    background: var(--cream-dark);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .mos-metric-label {
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--steam);
+    margin-bottom: 4px;
+  }
+  .mos-metric-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--espresso);
+  }
+  .mos-metric-val.safe   { color: var(--profit-green); }
+  .mos-metric-val.warn   { color: #B07020; }
+  .mos-metric-val.danger { color: var(--loss-red); }
+  .mos-metric-sub {
+    font-size: 0.67rem;
+    color: var(--steam);
+    margin-top: 3px;
+  }
+  .mos-bar-wrap {
+    height: 6px;
+    background: rgba(60,35,20,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .mos-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+  .mos-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.67rem;
+    color: var(--steam);
+  }
+  .mos-note {
+    font-size: 0.75rem;
+    color: var(--steam);
+    line-height: 1.5;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+  }
+  .mos-note strong { color: var(--espresso); font-weight: 500; }
+
+  /* Footer */
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--steam);
+  }
+  footer a { color: var(--caramel); text-decoration: none; }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    header { flex-direction: column; align-items: flex-start; }
+    .chart-header { flex-direction: column; gap: 8px; }
+  }
+  @media (max-width: 420px) {
+    .app-shell { padding: 1rem 1rem 3rem; }
+    .header-text h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <header>
+    <div class="header-icon">
+      <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 8h14l-2 10H7L5 8z" fill="#F5F0E8" fill-opacity="0.9"/>
+        <path d="M19 10h2a2 2 0 010 4h-2" stroke="#C07C3A" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M9 4c0 0 1-2 3-2s3 2 3 2" stroke="#C07C3A" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M5 22h14" stroke="#F5F0E8" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Operating Gearing Calculator</h1>
+      <p>Explore how fixed vs variable costs amplify profit changes in a coffee shop</p>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- Left: Controls -->
+    <aside class="panel">
+
+      <div class="panel-section">
+        <p class="section-head">Quick Presets</p>
+        <div class="presets">
+          <button class="preset-btn active" onclick="applyPreset('kiosk', this)">
+            Kiosk <small>Low fixed costs</small>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('independent', this)">
+            Indie Café <small>Mixed costs</small>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('chain', this)">
+            Chain Outlet <small>High fixed costs</small>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('roastery', this)">
+            Roastery <small>Premium pricing</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <p class="section-head">Sales & Pricing</p>
+        <div class="slider-row">
+          <div class="slider-meta">
+            <span class="slider-label">Cups sold per day</span>
+            <span class="slider-value" id="cups-out">150</span>
+          </div>
+          <input type="range" id="cups" min="20" max="600" step="10" value="150" oninput="update()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta">
+            <span class="slider-label">Average price per cup</span>
+            <span class="slider-value" id="price-out">£3.50</span>
+          </div>
+          <input type="range" id="price" min="2" max="8" step="0.5" value="3.5" oninput="update()">
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <p class="section-head">Cost Structure</p>
+        <div class="slider-row">
+          <div class="slider-meta">
+            <span class="slider-label">Fixed cost ratio</span>
+            <span class="slider-value" id="fixedpct-out">55%</span>
+          </div>
+          <input type="range" id="fixedpct" min="10" max="90" step="5" value="55" oninput="update()">
+          <div class="gearing-bar-wrap">
+            <div class="gearing-bar-fixed" id="gearing-bar" style="width:55%"></div>
+          </div>
+          <div class="gearing-labels">
+            <span>Variable</span><span>Fixed</span>
+          </div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-meta">
+            <span class="slider-label">Total costs as % of revenue</span>
+            <span class="slider-value" id="costpct-out">85%</span>
+          </div>
+          <input type="range" id="costpct" min="50" max="120" step="5" value="85" oninput="update()">
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right: Output -->
+    <div class="right-col">
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card" id="kpi-rev">
+          <p class="kpi-label">Annual Revenue</p>
+          <p class="kpi-value" id="kv-rev">—</p>
+          <p class="kpi-sub" id="ks-rev">—</p>
+        </div>
+        <div class="kpi-card" id="kpi-profit">
+          <p class="kpi-label">Annual Profit</p>
+          <p class="kpi-value" id="kv-profit">—</p>
+          <p class="kpi-sub" id="ks-profit">—</p>
+        </div>
+        <div class="kpi-card" id="kpi-bep">
+          <p class="kpi-label">Break-even</p>
+          <p class="kpi-value" id="kv-bep">—</p>
+          <p class="kpi-sub">cups/day needed</p>
+        </div>
+        <div class="kpi-card" id="kpi-dog">
+          <p class="kpi-label">Op. Gearing Ratio</p>
+          <p class="kpi-value" id="kv-dog">—</p>
+          <p class="kpi-sub">revenue ÷ profit</p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <p class="chart-title">Profit across sales volumes</p>
+            <p class="chart-subtitle">Drag sliders to see operating leverage in action</p>
+          </div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#2A5F9E"></span>Revenue</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#A04030"></span>Total costs</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#2D7D5A"></span>Profit / loss</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#1C120A; opacity:0.75; width:3px; border-radius:1px;"></span>Current sales</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#C07C3A; width:3px; border-radius:1px;"></span>Break-even</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="og-chart"></canvas></div>
+      </div>
+
+      <!-- Insight -->
+      <div class="insight-card">
+        <p class="insight-label">Gearing Insight</p>
+        <p class="insight-text" id="insight-text">Adjust the sliders to see your operating leverage analysis.</p>
+        <div id="bep-callout" style="display:none">
+          <span class="bep-callout" id="bep-callout-text">Break-even: — cups/day</span>
+        </div>
+      </div>
+
+      <!-- Margin of Safety -->
+      <div class="mos-card">
+        <div class="mos-header">
+          <p class="mos-title">Margin of Safety</p>
+          <p class="mos-subtitle">How far above break-even are you?</p>
+        </div>
+        <div class="mos-grid">
+          <div class="mos-metric">
+            <p class="mos-metric-label">MoS — Units</p>
+            <p class="mos-metric-val" id="mos-units">—</p>
+            <p class="mos-metric-sub">cups/day above BEP</p>
+          </div>
+          <div class="mos-metric">
+            <p class="mos-metric-label">MoS — Revenue</p>
+            <p class="mos-metric-val" id="mos-rev">—</p>
+            <p class="mos-metric-sub">annual sales cushion</p>
+          </div>
+          <div class="mos-metric">
+            <p class="mos-metric-label">MoS — Percentage</p>
+            <p class="mos-metric-val" id="mos-pct">—</p>
+            <p class="mos-metric-sub">sales could fall by this</p>
+          </div>
+        </div>
+        <div class="mos-bar-wrap">
+          <div class="mos-bar-fill" id="mos-bar"></div>
+        </div>
+        <div class="mos-bar-label">
+          <span>Break-even (<span id="mos-bep-label">—</span> cups/day)</span>
+          <span>Current (<span id="mos-cups-label">—</span> cups/day)</span>
+        </div>
+        <p class="mos-note" id="mos-note">Adjust the sliders to calculate your margin of safety.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    Operating gearing shows how a business's mix of fixed and variable costs amplifies changes in profit relative to changes in revenue.
+    &nbsp;|&nbsp; Built for educational use.
+    <br style="margin-top:6px; display:block; content:''">
+    &copy; Prof Pawel Bilinski
+  </footer>
+
+</div>
+
+<script>
+const DAYS = 365;
+const presets = {
+  kiosk:       { cups: 120, price: 3.0,  fixedpct: 35, costpct: 80 },
+  independent: { cups: 150, price: 3.5,  fixedpct: 55, costpct: 85 },
+  chain:       { cups: 350, price: 3.0,  fixedpct: 65, costpct: 82 },
+  roastery:    { cups: 100, price: 5.5,  fixedpct: 60, costpct: 78 }
+};
+
+function applyPreset(key, btn) {
+  const p = presets[key];
+  document.getElementById('cups').value      = p.cups;
+  document.getElementById('price').value     = p.price;
+  document.getElementById('fixedpct').value  = p.fixedpct;
+  document.getElementById('costpct').value   = p.costpct;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  update();
+}
+
+function gbp(n) {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + '£' + (abs / 1000000).toFixed(1) + 'm';
+  if (abs >= 1000)    return sign + '£' + Math.round(abs / 1000) + 'k';
+  return sign + '£' + Math.round(abs);
+}
+
+let chart = null;
+
+// Custom annotation plugin (lightweight)
+const bepPlugin = {
+  id: 'bepPlugin',
+  _bep: null,
+  _cups: null,
+  afterDraw(chart) {
+    const { ctx, scales: { x, y } } = chart;
+
+    // ── Zero line ──
+    const y0 = y.getPixelForValue(0);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(120,100,80,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x.left, y0);
+    ctx.lineTo(x.right, y0);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Break-even line (caramel dashed) ──
+    const bep = bepPlugin._bep;
+    const labelsB = bepPlugin._labels || [];
+    if (bep && isFinite(bep) && labelsB.length > 1) {
+      let bidx = labelsB.length - 1;
+      for (let i = 0; i < labelsB.length - 1; i++) {
+        if (bep <= labelsB[i + 1]) { bidx = i; break; }
+      }
+      const blo = labelsB[bidx], bhi = labelsB[Math.min(bidx + 1, labelsB.length - 1)];
+      const bfrac = bhi !== blo ? Math.min((bep - blo) / (bhi - blo), 1) : 0;
+      const bp0 = x.getPixelForValue(bidx);
+      const bp1 = x.getPixelForValue(Math.min(bidx + 1, labelsB.length - 1));
+      const px = bp0 + (bp1 - bp0) * bfrac;
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = '#C07C3A';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, y.top);
+      ctx.lineTo(px, y.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '11px Instrument Sans, sans-serif';
+      const label = 'BEP: ' + Math.ceil(bep) + ' cups/day';
+      const lw = ctx.measureText(label).width;
+      // place label left of line if near right edge
+      const lx = (px + lw + 16 > x.right) ? px - lw - 12 : px + 6;
+      const ly = y.top + 16;
+      ctx.fillStyle = 'rgba(192,124,58,0.15)';
+      ctx.beginPath();
+      ctx.roundRect(lx - 3, ly - 11, lw + 8, 17, 3);
+      ctx.fill();
+      ctx.fillStyle = '#C07C3A';
+      ctx.fillText(label, lx + 1, ly);
+      ctx.restore();
+    }
+
+    // ── Current sales volume line (espresso solid) ──
+    const cups = bepPlugin._cups;
+    const labelsArr = bepPlugin._labels || [];
+    if (cups && isFinite(cups) && labelsArr.length > 1) {
+      let idx = labelsArr.length - 1;
+      for (let i = 0; i < labelsArr.length - 1; i++) {
+        if (cups <= labelsArr[i + 1]) { idx = i; break; }
+      }
+      const lo = labelsArr[idx], hi = labelsArr[Math.min(idx + 1, labelsArr.length - 1)];
+      const frac = hi !== lo ? (cups - lo) / (hi - lo) : 0;
+      const p0 = x.getPixelForValue(idx);
+      const p1 = x.getPixelForValue(Math.min(idx + 1, labelsArr.length - 1));
+      const px = p0 + (p1 - p0) * Math.min(frac, 1);
+      ctx.save();
+      ctx.strokeStyle = '#1C120A';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(px, y.top);
+      ctx.lineTo(px, y.bottom);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      // dot at profit intersection
+      const profitY = y.getPixelForValue(Math.round((cups * DAYS * bepPlugin._price) - bepPlugin._totalCost - (bepPlugin._varCostPerCup * cups * DAYS) + (bepPlugin._varCostPerCup * cups * DAYS)));
+      const profitVal = bepPlugin._profit;
+      const dotY = y.getPixelForValue(profitVal);
+      ctx.beginPath();
+      ctx.arc(px, dotY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = profitVal >= 0 ? '#2D7D5A' : '#B84040';
+      ctx.fill();
+      ctx.strokeStyle = '#F5F0E8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // label
+      ctx.font = '500 11px Instrument Sans, sans-serif';
+      const txt = cups + ' cups/day';
+      const tw = ctx.measureText(txt).width;
+      const tx = (px + tw + 16 > x.right) ? px - tw - 12 : px + 7;
+      const ty = y.bottom - 10;
+      ctx.fillStyle = 'rgba(28,18,10,0.08)';
+      ctx.beginPath();
+      ctx.roundRect(tx - 3, ty - 11, tw + 8, 17, 3);
+      ctx.fill();
+      ctx.fillStyle = '#1C120A';
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(txt, tx + 1, ty);
+      ctx.restore();
+    }
+  }
+};
+
+Chart.register(bepPlugin);
+
+function update() {
+  const cups     = +document.getElementById('cups').value;
+  const price    = +document.getElementById('price').value;
+  const fixedPct = +document.getElementById('fixedpct').value / 100;
+  const costPct  = +document.getElementById('costpct').value / 100;
+
+  document.getElementById('cups-out').textContent    = cups;
+  document.getElementById('price-out').textContent   = '£' + price.toFixed(2);
+  document.getElementById('fixedpct-out').textContent = Math.round(fixedPct * 100) + '%';
+  document.getElementById('costpct-out').textContent  = Math.round(costPct * 100) + '%';
+  document.getElementById('gearing-bar').style.width  = Math.round(fixedPct * 100) + '%';
+
+  const annualCups = cups * DAYS;
+  const revenue    = annualCups * price;
+  const totalCost  = revenue * costPct;
+  const fixedCost  = totalCost * fixedPct;
+  const varCostPerCup = (totalCost * (1 - fixedPct)) / annualCups;
+  const profit     = revenue - totalCost;
+  const margin     = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const contribPerCup = price - varCostPerCup;
+  const bepCups = contribPerCup > 0 ? fixedCost / contribPerCup : Infinity;
+  const bepDaily = bepCups / DAYS;
+  const dog = (profit > 0 && isFinite(profit)) ? revenue / profit : null;
+
+  // KPIs
+  document.getElementById('kv-rev').textContent = gbp(revenue);
+  document.getElementById('ks-rev').textContent = '£' + Math.round(cups * price).toLocaleString('en-GB') + ' per day';
+
+  const profitEl = document.getElementById('kv-profit');
+  profitEl.textContent = (profit < 0 ? '-' : '') + gbp(Math.abs(profit));
+  profitEl.className = 'kpi-value ' + (profit >= 0 ? 'pos' : 'neg');
+  document.getElementById('ks-profit').textContent = 'Margin: ' + margin.toFixed(1) + '%';
+  document.getElementById('kpi-profit').className = 'kpi-card ' + (profit >= 0 ? 'profit-pos' : 'profit-neg');
+
+  document.getElementById('kv-bep').textContent = isFinite(bepDaily) ? Math.ceil(bepDaily) : '—';
+  document.getElementById('kv-dog').textContent = (dog !== null && isFinite(dog)) ? dog.toFixed(1) + 'x' : '—';
+
+  // Chart data
+  const maxCups = Math.max(cups * 2.5, isFinite(bepDaily) ? bepDaily * 1.6 : 0, 300);
+  const steps = 40;
+  const step = maxCups / steps;
+  const labels = [], revs = [], costs = [], profs = [];
+  for (let i = 0; i <= steps; i++) {
+    const c = Math.round(i * step);
+    const r = c * DAYS * price;
+    const tc = fixedCost + varCostPerCup * c * DAYS;
+    labels.push(c);
+    revs.push(Math.round(r));
+    costs.push(Math.round(tc));
+    profs.push(Math.round(r - tc));
+  }
+
+  bepPlugin._bep = isFinite(bepDaily) ? bepDaily : null;
+  bepPlugin._cups = cups;
+  bepPlugin._profit = profit;
+  bepPlugin._price = price;
+  bepPlugin._totalCost = totalCost;
+  bepPlugin._varCostPerCup = varCostPerCup;
+  bepPlugin._labels = labels.slice();
+
+  if (chart) { chart.destroy(); }
+  chart = new Chart(document.getElementById('og-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Revenue',      data: revs,  borderColor: '#2A5F9E', borderWidth: 2, pointRadius: 0, tension: 0.35, fill: false },
+        { label: 'Total costs',  data: costs, borderColor: '#A04030', borderWidth: 2, pointRadius: 0, tension: 0.35, fill: false },
+        { label: 'Profit/loss',  data: profs, borderColor: '#2D7D5A', backgroundColor: 'rgba(45,125,90,0.08)', borderWidth: 2.5, pointRadius: 0, tension: 0.35, fill: true }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1C120A',
+          titleColor: '#C07C3A',
+          bodyColor: 'rgba(245,240,232,0.85)',
+          padding: 10,
+          callbacks: {
+            title: ctx => ctx[0].label + ' cups/day',
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return ' ' + ctx.dataset.label + ': ' + (v < 0 ? '-£' : '£') + Math.abs(v).toLocaleString('en-GB');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Cups sold per day', font: { size: 11, family: 'Instrument Sans' }, color: '#7A6855' },
+          ticks: { maxTicksLimit: 7, color: '#7A6855', font: { size: 11 }, callback: (_, i) => labels[i] },
+          grid: { color: 'rgba(60,35,20,0.06)' },
+          border: { color: 'rgba(60,35,20,0.1)' }
+        },
+        y: {
+          title: { display: true, text: 'Annual £', font: { size: 11, family: 'Instrument Sans' }, color: '#7A6855' },
+          ticks: {
+            color: '#7A6855',
+            font: { size: 11 },
+            callback: v => (v < 0 ? '-£' : '£') + Math.abs(Math.round(v / 1000)) + 'k'
+          },
+          grid: { color: 'rgba(60,35,20,0.06)' },
+          border: { color: 'rgba(60,35,20,0.1)' }
+        }
+      }
+    }
+  });
+
+  // Insight
+  const fixedPctRnd = Math.round(fixedPct * 100);
+  const gLabel = fixedPct < 0.35 ? 'low' : fixedPct < 0.6 ? 'moderate' : 'high';
+
+  // Helper: given a fixed cost ratio, compute profit growth from a 10% revenue rise
+  function profitGrowthAt(fp) {
+    const tc  = revenue * costPct;
+    const fc  = tc * fp;
+    const vc  = tc * (1 - fp);
+    const p   = revenue - tc;
+    const newR = revenue * 1.10;
+    const newVC = vc * 1.10;
+    const newP  = newR - fc - newVC;
+    return p > 0 ? ((newP - p) / p * 100) : null;
+  }
+
+  const growthLow  = profitGrowthAt(0.25);
+  const growthMid  = profitGrowthAt(0.55);
+  const growthHigh = profitGrowthAt(0.80);
+  const growthCurr = profitGrowthAt(fixedPct);
+
+  let insightHTML = '';
+
+  // Line 1: current performance
+  if (profit >= 0) {
+    insightHTML = `At <strong>${cups} cups/day</strong>, the café earns <strong>${gbp(profit)}/year</strong> on a <strong>${margin.toFixed(1)}% profit margin</strong>.`;
+  } else {
+    insightHTML = `At <strong>${cups} cups/day</strong>, the café is losing <strong>${gbp(Math.abs(profit))}/year</strong> — it needs at least <strong>${Math.ceil(bepDaily)} cups/day</strong> to break even.`;
+  }
+
+  // Line 2: current gearing effect
+  if (growthCurr !== null && profit > 0) {
+    insightHTML += ` With <strong>${fixedPctRnd}% fixed costs (${gLabel} gearing)</strong>, a 10% rise in sales translates to a <strong>~${growthCurr.toFixed(0)}% increase in profit</strong> — and the same asymmetry applies on the downside.`;
+  }
+
+  // Line 3: comparative growth rates across gearing levels
+  if (profit > 0 && growthLow !== null && growthMid !== null && growthHigh !== null) {
+    insightHTML += `<br><br><span style="font-size:0.78rem; opacity:0.9"><strong>How fixed cost ratio affects profit growth from a 10% sales rise:</strong><br>`;
+    insightHTML += `• <strong>Low gearing (25% fixed):</strong> profit grows ~${growthLow.toFixed(0)}% — modest upside, but well protected on the downside.<br>`;
+    insightHTML += `• <strong>Moderate gearing (55% fixed):</strong> profit grows ~${growthMid.toFixed(0)}% — balanced risk/reward trade-off.<br>`;
+    insightHTML += `• <strong>High gearing (80% fixed):</strong> profit grows ~${growthHigh.toFixed(0)}% — powerful upside amplification, but losses accelerate equally fast if sales fall.</span>`;
+  } else if (profit <= 0 && isFinite(bepDaily)) {
+    insightHTML += `<br><br><span style="font-size:0.78rem; opacity:0.9">Once above break-even, <strong>higher fixed cost ratios accelerate profit growth</strong> faster with each additional cup sold — because every unit beyond BEP contributes fully to profit with no extra fixed cost burden. The flip side: those fixed costs pile up just as quickly in a downturn.</span>`;
+  }
+
+  document.getElementById('insight-text').innerHTML = insightHTML;
+
+  const bepCallout = document.getElementById('bep-callout');
+  if (isFinite(bepDaily)) {
+    bepCallout.style.display = '';
+    document.getElementById('bep-callout-text').textContent = 'Break-even: ' + Math.ceil(bepDaily) + ' cups/day';
+  } else {
+    bepCallout.style.display = 'none';
+  }
+
+  // ── Margin of Safety ──
+  const mosUnitsEl  = document.getElementById('mos-units');
+  const mosRevEl    = document.getElementById('mos-rev');
+  const mosPctEl    = document.getElementById('mos-pct');
+  const mosBarEl    = document.getElementById('mos-bar');
+  const mosNoteEl   = document.getElementById('mos-note');
+  document.getElementById('mos-bep-label').textContent  = isFinite(bepDaily) ? Math.ceil(bepDaily) : '—';
+  document.getElementById('mos-cups-label').textContent = cups;
+
+  if (!isFinite(bepDaily) || contribPerCup <= 0) {
+    mosUnitsEl.textContent = '—'; mosUnitsEl.className = 'mos-metric-val';
+    mosRevEl.textContent   = '—'; mosRevEl.className   = 'mos-metric-val';
+    mosPctEl.textContent   = '—'; mosPctEl.className   = 'mos-metric-val';
+    mosBarEl.style.width   = '0%';
+    mosBarEl.style.background = '#C07C3A';
+    mosNoteEl.innerHTML = 'Cannot calculate margin of safety — contribution per cup is zero or negative.';
+  } else {
+    const mosUnitsCups = cups - bepDaily;              // cups/day above BEP
+    const mosRevAmt    = mosUnitsCups * DAYS * price;  // £ annual cushion
+    const mosPctVal    = (cups / bepDaily - 1) * 100; // % above BEP
+    const barPct       = Math.min(Math.max((cups / (bepDaily * 2)) * 100, 0), 100);
+
+    const ratingClass = mosPctVal >= 25 ? 'safe' : mosPctVal >= 10 ? 'warn' : mosPctVal >= 0 ? 'danger' : 'danger';
+    const barColor    = mosPctVal >= 25 ? '#2D7D5A' : mosPctVal >= 10 ? '#B07020' : '#B84040';
+
+    mosUnitsEl.textContent = mosUnitsCups >= 0 ? '+' + Math.round(mosUnitsCups) : Math.round(mosUnitsCups);
+    mosUnitsEl.className   = 'mos-metric-val ' + ratingClass;
+
+    mosRevEl.textContent = (mosRevAmt >= 0 ? '+' : '') + gbp(mosRevAmt);
+    mosRevEl.className   = 'mos-metric-val ' + ratingClass;
+
+    mosPctEl.textContent = (mosPctVal >= 0 ? '+' : '') + mosPctVal.toFixed(1) + '%';
+    mosPctEl.className   = 'mos-metric-val ' + ratingClass;
+
+    mosBarEl.style.width      = Math.max(barPct, 0) + '%';
+    mosBarEl.style.background = barColor;
+
+    let mosNote = '';
+    if (mosUnitsCups < 0) {
+      mosNote = `Sales are <strong>${Math.abs(Math.round(mosUnitsCups))} cups/day below break-even</strong>. Revenue needs to rise by <strong>${gbp(Math.abs(mosRevAmt))}/year</strong> just to cover costs.`;
+    } else if (mosPctVal < 10) {
+      mosNote = `Thin cushion — sales could fall by just <strong>${mosPctVal.toFixed(1)}%</strong> (${Math.round(mosUnitsCups)} cups/day) before hitting break-even. Consider cutting fixed costs or raising prices.`;
+    } else if (mosPctVal < 25) {
+      mosNote = `Moderate safety buffer. Sales can drop by <strong>${mosPctVal.toFixed(1)}%</strong> — or <strong>${Math.round(mosUnitsCups)} cups/day</strong> — before the business breaks even.`;
+    } else {
+      mosNote = `Comfortable margin. Sales would need to fall by <strong>${mosPctVal.toFixed(1)}%</strong> (<strong>${Math.round(mosUnitsCups)} cups/day</strong>, worth <strong>${gbp(mosRevAmt)}/year</strong>) before profits are wiped out.`;
+    }
+    mosNoteEl.innerHTML = mosNote;
+  }
+}
+
+update();
+</script>
+</body>
+</html>
